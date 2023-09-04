@@ -1,0 +1,32 @@
+{
+    "explorer" : [
+        ["TEMP"],
+        ["APPDATA"],
+        ["PROGRAMDATA"],
+        ["PROGRAMFILES"],
+        ["LOCALAPPDATA"],
+        ["PROGRAMFILES(X86)"],
+        ["PUBLIC", "\\Documents"],
+        ["USERPROFILE", "\\Saved Games"],
+        ["USERPROFILE", "\\AppData\\LocalLow"],
+        ["PROGRAMDATA", "\\Intel\\ShaderCache"],
+        ["LOCALAPPDATA", "\\NVIDIA\\NvBackend\\VisualOPSData"],
+        "D:\\Documents\\My Games",
+        "D:\\Documents"
+    ],
+    "regedit_folders" : [
+        "HKCU\\SOFTWARE",
+		"HKCU\\SOFTWARE\\Classes",
+		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
+		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths"
+	],
+	"regedit_values" : [	
+		"HKCU\\SOFTWARE\\Classes\\VirtualStore\\MACHINE\\SOFTWARE\\NVIDIA Corporation\\Global\\NVTweak\\NvCplAppNamesStored",
+		["HKU\\", "<Sid>", "\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Compatibility Assistant\\Store"]
+	],
+	"regedit_loops" : [
+		"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FeatureUsage",
+		["HKU\\", "<Sid>", "\\System\\GameConfigStore\\Children"]
+	]
+}
