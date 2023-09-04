@@ -5,10 +5,11 @@ This script does not delete anything.
 
 .DESCRIPTION
 Green values under a Blue path can be manually deleted but won't be opened, only the parent path will be opened.
-Green paths will be opened and can be manually deleted. The optional white values under specify which string triggered the match.
+Green paths will be opened and can be manually deleted. The optional White values under specify which string triggered the match.
 
 .PARAMETER FilePath
 Path to the JSON file containing the paths to analyze.
+Default value: .\paths.json
 
 .PARAMETER Words
 Keywords used to filter results, case insensitive.
