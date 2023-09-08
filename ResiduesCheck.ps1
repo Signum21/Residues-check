@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-This script searches for residual services, files, folders and registry keys left over from uninstalled programs.
+This script searches for residual firewall rules, services, files, folders and registry keys left over from uninstalled programs.
 This script does not delete anything.
 
 .DESCRIPTION
@@ -16,7 +16,7 @@ Keywords used to filter results, case insensitive.
 
 .PARAMETER Check
 Option to specify which search to perform.
-Possible values: All, Explorer, Regedit, Services
+Possible values: All, Explorer, Regedit, Services, FirewallRules
 Default value: All
 
 .PARAMETER MaxRegeditWindows
@@ -47,7 +47,7 @@ Param(
 	[String] $FilePath = ".\paths.json",
 	
 	[Parameter(Position = 2, Mandatory = $false)]
-	[ValidateSet("All", "Regedit", "Explorer", "Services")]
+	[ValidateSet("All", "Regedit", "Explorer", "Services", "FirewallRules")]
 	[String[]] $Check = @("All"),
 	
 	[Parameter(Position = 3, Mandatory = $false)]
@@ -131,7 +131,7 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 	}
 	
 	if($regeditPathsToPrint){
-		Write-Host "Regedit paths:" -ForegroundColor Red
+		Write-Host "Regedit paths:" -ForegroundColor DarkRed
 		Write-Host "`n" -NoNewline
 			
 		foreach($rptp in $regeditPathsToPrint){
@@ -188,7 +188,7 @@ function OpenExplorerPaths($explorer_paths, $_words, $maxWindows){
 	}
 	
 	if($explorerPathsToOpen){
-		Write-Host "Explorer paths:" -ForegroundColor Red
+		Write-Host "Explorer paths:" -ForegroundColor DarkRed
 		Write-Host "`n" -NoNewline
 		
 		PrintPath($explorerPathsToOpen[0])
@@ -207,33 +207,54 @@ function OpenExplorerPaths($explorer_paths, $_words, $maxWindows){
 ############################# Services #############################
 
 function GetServices($_words){
-	$services = Get-Service | select Name, DisplayName, Status | Select-String -Pattern $_words
-	$servicesObjects = @()
+	$filter = foreach($w in $_words) {"*$w*"}
+	$nameFilter = (Get-Service -Name $filter) 2> $null
+	$displayNameFilter = (Get-Service -DisplayName $filter) 2> $null
+	$services = $nameFilter + $displayNameFilter | select -Unique -Property Name, DisplayName, Status
 	
-	foreach($s in $services){
-		if($s){
-			$s = $s -replace "@{Name=" -replace " DisplayName=" -replace " Status="
-			$service = $s.substring(0, $s.Length - 1)
-			$serviceObject = ConvertFrom-String $service -Delimiter ";"
-			$serviceObjectRenamed = $serviceObject | select @{N='Name';E={$_.P1}}, @{N='DisplayName';E={$_.P2}}, @{N='Status';E={$_.P3}}
-			$servicesObjects += $serviceObjectRenamed
-		}
-	}
-	
-	if($servicesObjects){
-		Write-Host "Services:" -ForegroundColor Red
+	if($services){
+		Write-Host "Services:" -ForegroundColor DarkRed
 		Write-Host "`n" -NoNewline
 		
-		Write-Host $($servicesObjects | Format-Table | Out-String).Trim() -NoNewline
+		Write-Host $($services | Format-List | Out-String).Trim() -NoNewline 2> $null
 		
 		Write-Host "`n"
 		Write-Host "You can stop and delete any service using the following commands with admin privileges:"
-		Write-Host "Stop-Service -Name " -ForegroundColor Blue -NoNewline
-		Write-Host "<ServiceName>" -ForegroundColor Green
-		Write-Host "sc.exe delete " -ForegroundColor Blue -NoNewline
-		Write-Host "<ServiceName>" -ForegroundColor Green
+		Write-Host "Stop-Service -Name " -ForegroundColor DarkCyan -NoNewline
+		Write-Host "<ServiceName>" -ForegroundColor DarkYellow
+		Write-Host "sc.exe delete " -ForegroundColor DarkCyan -NoNewline
+		Write-Host "<ServiceName>" -ForegroundColor DarkYellow
 		Write-Host "`n" -NoNewline
 	}
+}
+
+
+############################# Firewall Rules #############################
+
+function GetFirewallRules($_words){
+	$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+	$isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+	
+	if($isAdmin){
+		$filter = foreach($w in $_words) {"*$w*"}
+		$rules = Get-NetFirewallRule -DisplayName $filter | select DisplayName,Description,Enabled,Direction,Action
+		
+		if($rules){
+			Write-Host "Firewall Rules:" -ForegroundColor DarkRed
+			Write-Host "`n" -NoNewline
+			
+			Write-Host $($rules | Format-List | Out-String).Trim() -NoNewline
+			
+			Write-Host "`n"
+			Write-Host "You can delete any rule using the following command with admin privileges:"
+			Write-Host "Remove-NetFirewallRule -DisplayName " -ForegroundColor DarkCyan -NoNewline
+			Write-Host "<RuleDisplayName>" -ForegroundColor DarkYellow
+			Write-Host "`n" -NoNewline
+		}
+	}
+	else{
+		Write-Host "You need admin privileges to check firewall rules" -BackgroundColor DarkRed
+	}		
 }
 
 
@@ -251,4 +272,8 @@ if("AllRegedit" -match $($Check -Join "|")){
 
 if("AllServices" -match $($Check -Join "|")){
 	GetServices $Words
+}
+
+if("AllFirewallRules" -match $($Check -Join "|")){
+	GetFirewallRules $Words
 }

@@ -1,5 +1,5 @@
 # Residues-check
-This script searches for residual services, files, folders and registry keys left over from uninstalled programs.<br>
+This script searches for residual firewall rules, services, files, folders and registry keys left over from uninstalled programs.<br>
 This script does not delete anything.
 
 ## Usage
