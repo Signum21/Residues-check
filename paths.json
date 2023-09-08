@@ -15,6 +15,7 @@
         "D:\\Documents"
     ],
     "regedit_folders" : [
+        "HKCR",
         "HKCU\\SOFTWARE",
 		"HKCU\\SOFTWARE\\Classes",
 		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
