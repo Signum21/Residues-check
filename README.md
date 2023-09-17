@@ -11,3 +11,7 @@ Get-Help .\ResiduesCheck.ps1 -Detailed
 ## Output colors
 Green values under a Blue path can be manually deleted but won't be opened, only the parent path will be opened.<br>
 Green paths will be opened and can be manually deleted. The optional White values under specify which string triggered the match.
+
+## Verbosity
+You can use the \[-Verbose, -v] option to add basic verbosity and the \[-Debug, -d] option to add high verbosity.
+Use both to add mmaximum verbosity.
