@@ -27,6 +27,10 @@ Default value: 1
 Max number of Explorer windows to open.
 Default value: 1
 
+.PARAMETER ExcludeLongChecks
+Option to exclude long checks.
+Default value: False
+
 .EXAMPLE
 Performs all searches without opening any window.
 .\ResiduesCheck.ps1 -Words anydesk,teamviewer -MaxExplorerWindows 0 -MaxRegeditWindows 0
@@ -54,7 +58,10 @@ Param(
 	[Int] $MaxRegeditWindows = 1,
 	
 	[Parameter(Position = 4, Mandatory = $false)]
-	[Int] $MaxExplorerWindows = 1
+	[Int] $MaxExplorerWindows = 1,
+	
+	[Parameter(Position = 5, Mandatory = $false)]
+	[Switch] $ExcludeLongChecks = $false
 )
 
 
@@ -113,25 +120,27 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 		}
 	}
 	
-	foreach($loop_path in $regedit_loops_paths){
-		if($loop_path.GetType().Name -eq "Object[]"){
-			$sid = $(Get-LocalUser -Name $env:USERNAME).Sid.Value
-			$loop_path = $loop_path[0] + $sid + $loop_path[2]
-		}		
-		$res = $(reg query $loop_path).Where({ $_ -ne "" -and $_.substring(0, 4) -ne "    " })
-		
-		foreach($r in $res){
-			$res2 = reg query $r | Select-String -Pattern $_words
+	if(!$ExcludeLongChecks){
+		foreach($loop_path in $regedit_loops_paths){
+			if($loop_path.GetType().Name -eq "Object[]"){
+				$sid = $(Get-LocalUser -Name $env:USERNAME).Sid.Value
+				$loop_path = $loop_path[0] + $sid + $loop_path[2]
+			}		
+			$res = $(reg query $loop_path).Where({ $_ -ne "" -and $_.substring(0, 4) -ne "    " })
 			
-			if($res2){					
-				$regeditPathsToPrint += [pscustomobject]@{Key = $r; Value = @(); KeyColor="Green"; ValueColor="White"}
-				OpenRegedit $r $maxWindows ([ref]$windowsCounter)
+			foreach($r in $res){
+				$res2 = reg query $r | Select-String -Pattern $_words
 				
-				foreach($r2 in $res2){
-					$regeditPathsToPrint[-1].Value += $([string]$r2).Trim() -Split "    " | Select-String -Pattern $_words
+				if($res2){					
+					$regeditPathsToPrint += [pscustomobject]@{Key = $r; Value = @(); KeyColor="Green"; ValueColor="White"}
+					OpenRegedit $r $maxWindows ([ref]$windowsCounter)
+					
+					foreach($r2 in $res2){
+						$regeditPathsToPrint[-1].Value += $([string]$r2).Trim() -Split "    " | Select-String -Pattern $_words
+					}
 				}
-			}
-		}	
+			}	
+		}
 	}
 	
 	if($regeditPathsToPrint){
