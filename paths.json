@@ -19,7 +19,8 @@
         "HKCU\\SOFTWARE",
 		"HKCU\\SOFTWARE\\Classes",
 		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
-		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths"
+		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
+		"HKLM\\SYSTEM\\CurrentControlSet\\Services"
 	],
 	"regedit_values" : [	
 		"HKCU\\SOFTWARE\\Classes\\VirtualStore\\MACHINE\\SOFTWARE\\NVIDIA Corporation\\Global\\NVTweak\\NvCplAppNamesStored",
