@@ -12,23 +12,33 @@
         ["PROGRAMDATA", "\\Intel\\ShaderCache"],
         ["LOCALAPPDATA", "\\NVIDIA\\NvBackend\\VisualOPSData"],
         "D:\\Documents\\My Games",
-        "D:\\Documents"
+        "D:\\Documents",
+        "D:\\Programmi"
     ],
     "regedit_folders" : [
         "HKCR",
         "HKCU\\SOFTWARE",
+		"HKCR\\Applications",
 		"HKCU\\SOFTWARE\\Classes",
+		"HKLM\\SYSTEM\\CurrentControlSet\\Services",
 		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
 		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
-		"HKLM\\SYSTEM\\CurrentControlSet\\Services"
+		["HKEY_USERS\\", "<Sid>", "_Classes"]
 	],
 	"regedit_values" : [	
+		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Installer\\Folders",
+		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TypedPaths",
+		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ApplicationAssociationToasts",
 		"HKCU\\SOFTWARE\\Classes\\VirtualStore\\MACHINE\\SOFTWARE\\NVIDIA Corporation\\Global\\NVTweak\\NvCplAppNamesStored",
 		["HKU\\", "<Sid>", "\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Compatibility Assistant\\Store"]
 	],
 	"regedit_loops" : [
+		"HKCR\\CLSID",
+		"HKCR\\Interface",
+		"HKCR\\Installer\\Dependencies",
 		"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
 		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FeatureUsage",
+		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Installer\\UserData\\S-1-5-18\\Components",
 		["HKU\\", "<Sid>", "\\System\\GameConfigStore\\Children"]
 	]
 }

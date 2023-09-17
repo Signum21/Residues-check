@@ -21,11 +21,11 @@ Default value: All
 
 .PARAMETER MaxRegeditWindows
 Max number of Regedit windows to open.
-Default value: 10
+Default value: 1
 
 .PARAMETER MaxExplorerWindows
 Max number of Explorer windows to open.
-Default value: 15
+Default value: 1
 
 .EXAMPLE
 Performs all searches without opening any window.
@@ -51,10 +51,10 @@ Param(
 	[String[]] $Check = @("All"),
 	
 	[Parameter(Position = 3, Mandatory = $false)]
-	[Int] $MaxRegeditWindows = 10,
+	[Int] $MaxRegeditWindows = 1,
 	
 	[Parameter(Position = 4, Mandatory = $false)]
-	[Int] $MaxExplorerWindows = 15
+	[Int] $MaxExplorerWindows = 1
 )
 
 
@@ -76,6 +76,10 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 	}
 	
 	foreach($folder_path in $regedit_folders_paths){
+		if($folder_path.GetType().Name -eq "Object[]"){
+			$sid = $(Get-LocalUser -Name $env:USERNAME).Sid.Value
+			$folder_path = $folder_path[0] + $sid + $folder_path[2]
+		}
 		$res = reg query $folder_path | Select-String -Pattern $_words
 		
 		if($res){			
