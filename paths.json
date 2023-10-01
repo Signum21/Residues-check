@@ -7,9 +7,12 @@
         ["LOCALAPPDATA"],
         ["PROGRAMFILES(X86)"],
         ["PUBLIC", "\\Documents"],
+        ["USERPROFILE", "\\Documents"],
         ["USERPROFILE", "\\Saved Games"],
+        ["PROGRAMFILES", "\\Common Files"],
         ["USERPROFILE", "\\AppData\\LocalLow"],
         ["PROGRAMDATA", "\\Intel\\ShaderCache"],
+        ["USERPROFILE", "\\Documents\\My Games"],
         ["LOCALAPPDATA", "\\NVIDIA\\NvBackend\\VisualOPSData"],
         "D:\\Documents\\My Games",
         "D:\\Documents",
@@ -23,7 +26,7 @@
 		"HKLM\\SYSTEM\\CurrentControlSet\\Services",
 		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
 		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
-		["HKEY_USERS\\", "<Sid>", "_Classes"]
+		["HKU\\", "<Sid>", "_Classes"]
 	],
 	"regedit_values" : [	
 		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Installer\\Folders",
