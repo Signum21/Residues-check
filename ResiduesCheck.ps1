@@ -115,54 +115,60 @@ function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $debugSwitch){
 		Write-Host "`n" -NoNewline
 	}
 	
-	Write-Verbose "Checking Explorer paths `n`n"
-	
-	foreach($p in $explorer_paths){
-		if($p.GetType().Name -eq "Object[]"){
-			$p = GetFullPath($p)
-		}
+	if($explorer_paths){
+		Write-Verbose "Checking Explorer paths `n`n"
 		
-		if(Test-Path $p){
-			Write-Debug $("Checking " + $p)
-			$res = $(ls $p).Name | Select-String -Pattern $_words
+		foreach($p in $explorer_paths){
+			if($p.GetType().Name -eq "Object[]"){
+				$p = GetFullPath($p)
+			}
 			
-			if($res){
-				$explorerPathsToOpen += [pscustomobject]@{Key = $p; Value = @(); KeyColor="Blue"; ValueColor="Green"}
+			if(Test-Path $p){
+				Write-Debug $("Checking " + $p)
+				$res = $(ls $p).Name | Select-String -Pattern $_words
 				
-				foreach($r in $res){
-					$explorerPathsToOpen[-1].Value += $r
-				}	
+				if($res){
+					$explorerPathsToOpen += [pscustomobject]@{Key = $p; Value = @(); KeyColor="Blue"; ValueColor="Green"}
+					
+					foreach($r in $res){
+						$explorerPathsToOpen[-1].Value += $r
+					}	
+				}
+			}
+			else{
+				Write-Host $("Path {0} does not exist" -f $p) -BackgroundColor DarkRed
 			}
 		}
-		else{
-			Write-Host $("Path {0} does not exists" -f $p) -BackgroundColor DarkRed
+		
+		if($debugSwitch){
+			Write-Host "`n" -NoNewline
 		}
 	}
-	
-	if($debugSwitch){
-		Write-Host "`n" -NoNewline
+	else{
+		Write-Verbose "Explorer paths missing `n`n"
 	}
 	
 	if($explorerPathsToOpen){
 		PrintHeader "Explorer paths"
 		
-		PrintPath($explorerPathsToOpen[0])
+		PrintPath $explorerPathsToOpen[0]
 		OpenExplorer "explorer" $explorerPathsToOpen[0].Key $maxWindows ([ref]$windowsCounter)
 		Start-Sleep -s 1
 		$exp_paths = $explorerPathsToOpen[1..$explorerPathsToOpen.Length]
 		
 		foreach($epto in $exp_paths){
-			PrintPath($epto)
+			PrintPath $epto
 			OpenExplorer "ii" $epto.Key $maxWindows ([ref]$windowsCounter)
 		}
 	}
 }
 
+
 ############################# Regedit #############################
 
 function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedit_loops_paths, $_words, $maxWindows, $debugSwitch){
 	$windowsCounter = 0
-	$regeditPathsToPrint = @()
+	$firstPrint = $true
 	
 	function Local:OpenRegedit($_path, $_maxWindows, [ref]$_windowsCounter){
 		if($_maxWindows -gt $_windowsCounter.Value){
@@ -175,71 +181,105 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 		}
 	}
 	
-	Write-Verbose "Checking Regedit folders paths `n`n"
-	
-	foreach($folder_path in $regedit_folders_paths){	
-		if($folder_path.GetType().Name -eq "Object[]"){
-			$sid = $(Get-LocalUser -Name $env:USERNAME).Sid.Value
-			$folder_path = $folder_path[0] + $sid + $folder_path[2]
-		}
-		
-		if(Test-Path Registry::$folder_path){
-			Write-Debug $("Checking " + $folder_path)
-			$res = reg query $folder_path | Select-String -Pattern $_words
-			
-			if($res){			
-				$regeditPathsToPrint += [pscustomobject]@{Key = ""; Value = @(); KeyColor="Green"}
+	function Local:Print($_regeditPathsToPrint, [ref]$_firstPrint){
+		if($_regeditPathsToPrint){
+			if($_firstPrint.Value){
+				PrintHeader "Regedit paths"
+				$_firstPrint.Value = $false
+			}
 				
-				foreach($r in $res){
-					$regeditPathsToPrint[-1].Key += $([string]$r) + "`n"
-					OpenRegedit $r $maxWindows ([ref]$windowsCounter)
+			foreach($rptp in $regeditPathsToPrint){
+				Write-Host $rptp.Key -ForegroundColor $rptp.KeyColor
+				
+				foreach($value in $rptp.Value){
+					Write-Host $value -ForegroundColor $rptp.ValueColor
 				}
-				$regeditPathsToPrint[-1].Key = $regeditPathsToPrint[-1].Key.Trim()
+				Write-Host "`n" -NoNewline
 			}
 		}
-		else{
-			Write-Host $("Path {0} does not exists" -f $folder_path) -BackgroundColor DarkRed
-		}
 	}
 	
-	if($debugSwitch){
-		Write-Host "`n" -NoNewline
-	}
-	Write-Verbose "Checking Regedit values paths `n`n"	
-	
-	foreach($value_path in $regedit_values_paths){		
-		if($value_path.GetType().Name -eq "Object[]"){
-			$sid = $(Get-LocalUser -Name $env:USERNAME).Sid.Value
-			$value_path = $value_path[0] + $sid + $value_path[2]
-		}
+	if($regedit_folders_paths){
+		Write-Verbose "Checking Regedit folders paths `n`n"
+		$regeditPathsToPrint = @()
 		
-		if(Test-Path Registry::$value_path){
-			Write-Debug $("Checking " + $value_path)
-			$res = reg query $value_path | Select-String -Pattern $_words
+		foreach($folder_path in $regedit_folders_paths){	
+			if($folder_path.GetType().Name -eq "Object[]"){
+				$sid = $(Get-LocalUser -Name $env:USERNAME).Sid.Value
+				$folder_path = $folder_path[0] + $sid + $folder_path[2]
+			}
 			
-			if($res){
-				$regeditPathsToPrint += [pscustomobject]@{Key = $value_path; Value = @(); KeyColor="Blue"; ValueColor="Green"}
-				OpenRegedit $value_path $maxWindows ([ref]$windowsCounter)
+			if(Test-Path Registry::$folder_path){
+				Write-Debug $("Checking " + $folder_path)
+				$res = reg query $folder_path | Select-String -Pattern $_words
 				
-				foreach($r in $res){					
-					foreach($match in $r){
-						$value = $($([string]$match).Trim() -Split "    ")[0]
-						$regeditPathsToPrint[-1].Value += $value
+				if($res){			
+					$regeditPathsToPrint += [pscustomobject]@{Key = ""; Value = @(); KeyColor="Green"}
+					
+					foreach($r in $res){
+						$regeditPathsToPrint[-1].Key += $([string]$r) + "`n"
+						OpenRegedit $r $maxWindows ([ref]$windowsCounter)
+					}
+					$regeditPathsToPrint[-1].Key = $regeditPathsToPrint[-1].Key.Trim()
+				}
+			}
+			else{
+				Write-Host $("Path {0} does not exist" -f $folder_path) -BackgroundColor DarkRed
+			}
+		}
+	
+		if($debugSwitch){
+			Write-Host "`n" -NoNewline
+		}
+		Print $regeditPathsToPrint ([ref]$firstPrint)
+	}
+	else{
+		Write-Verbose "Regedit folders paths missing `n`n"
+	}
+	
+	if($regedit_values_paths){
+		Write-Verbose "Checking Regedit values paths `n`n"
+		$regeditPathsToPrint = @()
+		
+		foreach($value_path in $regedit_values_paths){		
+			if($value_path.GetType().Name -eq "Object[]"){
+				$sid = $(Get-LocalUser -Name $env:USERNAME).Sid.Value
+				$value_path = $value_path[0] + $sid + $value_path[2]
+			}
+			
+			if(Test-Path Registry::$value_path){
+				Write-Debug $("Checking " + $value_path)
+				$res = $(reg query $value_path)[2..$value_path.Length] | Select-String -Pattern $_words
+				
+				if($res){
+					$regeditPathsToPrint += [pscustomobject]@{Key = $value_path; Value = @(); KeyColor="Blue"; ValueColor="Green"}
+					OpenRegedit $value_path $maxWindows ([ref]$windowsCounter)
+					
+					foreach($r in $res){					
+						foreach($match in $r){
+							$value = $($([string]$match).Trim() -Split "    ")[0]
+							$regeditPathsToPrint[-1].Value += $value
+						}
 					}
 				}
 			}
+			else{
+				Write-Host $("Path {0} does not exist" -f $value_path) -BackgroundColor DarkRed
+			}
 		}
-		else{
-			Write-Host $("Path {0} does not exists" -f $value_path) -BackgroundColor DarkRed
+		
+		if($debugSwitch){
+			Write-Host "`n" -NoNewline
 		}
+		Print $regeditPathsToPrint ([ref]$firstPrint)
+	}
+	else{
+		Write-Verbose "Regedit values paths missing `n`n"
 	}
 	
-	if($debugSwitch){
-		Write-Host "`n" -NoNewline
-	}
-	
-	if(!$ExcludeLongChecks){
+	if(!$ExcludeLongChecks -and $regedit_loops_paths){
 		Write-Verbose "Checking Regedit loops paths `n`n"
+		$regeditPathsToPrint = @()
 	
 		foreach($loop_path in $regedit_loops_paths){
 			if($loop_path.GetType().Name -eq "Object[]"){
@@ -265,26 +305,17 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 				}
 			}
 			else{
-				Write-Host $("Path {0} does not exists" -f $loop_path) -BackgroundColor DarkRed
+				Write-Host $("Path {0} does not exist" -f $loop_path) -BackgroundColor DarkRed
 			}
 			
 			if($debugSwitch){
 				Write-Host "`n" -NoNewline
 			}
 		}
+		Print $regeditPathsToPrint ([ref]$firstPrint)
 	}
-	
-	if($regeditPathsToPrint){
-		PrintHeader "Regedit paths"
-			
-		foreach($rptp in $regeditPathsToPrint){
-			Write-Host $rptp.Key -ForegroundColor $rptp.KeyColor
-			
-			foreach($value in $rptp.Value){
-				Write-Host $value -ForegroundColor $rptp.ValueColor
-			}
-			Write-Host "`n" -NoNewline
-		}
+	elseif(!$regedit_loops_paths){
+		Write-Verbose "Regedit loops paths missing `n`n"
 	}
 }
 
@@ -342,29 +373,35 @@ function GetFirewallRules($_words){
 	}
 	else{
 		Write-Host "You need admin privileges to check firewall rules" -BackgroundColor DarkRed
-	}		
+	}	
 }
 
 
 ############################# Main #############################
 
-if ($PSBoundParameters["Debug"]) {
-    $DebugPreference = "Continue"
-}
-$paths = Get-Content $FilePath -Raw | ConvertFrom-Json
+if(Test-Path $FilePath){
+	if ($PSBoundParameters["Debug"]) {
+		$DebugPreference = "Continue"
+	}
+	$paths = Get-Content $FilePath -Raw | ConvertFrom-Json
+	$regex = $Check -Join "|"
 
-if("AllExplorer" -match $($Check -Join "|")){
-	OpenExplorerPaths $paths.explorer $Words $MaxExplorerWindows $PSBoundParameters["Debug"]
-}
+	if("AllExplorer" -match $regex){
+		OpenExplorerPaths $paths.explorer $Words $MaxExplorerWindows $PSBoundParameters["Debug"]
+	}
 
-if("AllRegedit" -match $($Check -Join "|")){
-	OpenRegeditPaths $paths.regedit_folders $paths.regedit_values $paths.regedit_loops $Words $MaxRegeditWindows $PSBoundParameters["Debug"]
-}
+	if("AllRegedit" -match $regex){
+		OpenRegeditPaths $paths.regedit_folders $paths.regedit_values $paths.regedit_loops $Words $MaxRegeditWindows $PSBoundParameters["Debug"]
+	}
 
-if("AllServices" -match $($Check -Join "|")){
-	GetServices $Words
-}
+	if("AllServices" -match $regex){
+		GetServices $Words
+	}
 
-if("AllFirewallRules" -match $($Check -Join "|")){
-	GetFirewallRules $Words
+	if("AllFirewallRules" -match $regex){
+		GetFirewallRules $Words
+	}
 }
+else{
+	Write-Host $("{0} not found" -f $FilePath) -BackgroundColor DarkRed
+}	
