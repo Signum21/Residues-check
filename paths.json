@@ -21,14 +21,17 @@
     "regedit_folders" : [
         "HKCR",
         "HKCU\\SOFTWARE",
+        "HKLM\\SOFTWARE",
 		"HKCR\\Applications",
 		"HKCU\\SOFTWARE\\Classes",
+        "HKLM\\SOFTWARE\\WOW6432Node",
 		"HKLM\\SYSTEM\\CurrentControlSet\\Services",
 		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
 		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths",
 		["HKU\\", "<Sid>", "_Classes"]
 	],
 	"regedit_values" : [	
+		"HKCR\\Local Settings\\Software\\Microsoft\\Windows\\Shell\\MuiCache",
 		"HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Installer\\Folders",
 		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TypedPaths",
 		"HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\ApplicationAssociationToasts",
