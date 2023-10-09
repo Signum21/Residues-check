@@ -1,12 +1,12 @@
 {
-    "explorer" : [
+    "explorer_specific" : [
         ["TEMP"],
         ["APPDATA"],
+		["USERPROFILE"],
         ["PROGRAMDATA"],
         ["PROGRAMFILES"],
         ["LOCALAPPDATA"],
         ["PROGRAMFILES(X86)"],
-        ["PUBLIC", "\\Documents"],
         ["USERPROFILE", "\\Documents"],
         ["USERPROFILE", "\\Saved Games"],
         ["PROGRAMFILES", "\\Common Files"],
@@ -14,7 +14,16 @@
         ["PROGRAMDATA", "\\Intel\\ShaderCache"],
         ["USERPROFILE", "\\Documents\\My Games"],
         ["LOCALAPPDATA", "\\NVIDIA\\NvBackend\\VisualOPSData"],
+        ["LOCALAPPDATA", "\\Packages\\Microsoft.Windows.Search_cw5n1h2txyewy\\LocalState\\AppIconCache\\150"],
         "D:\\Documents\\My Games",
+        "D:\\Documents",
+        "D:\\Programmi"
+    ],
+    "explorer_recursive" : [
+        ["PROGRAMDATA"],
+        ["USERPROFILE"],
+        ["PROGRAMFILES"],
+        ["PROGRAMFILES(X86)"],
         "D:\\Documents",
         "D:\\Programmi"
     ],

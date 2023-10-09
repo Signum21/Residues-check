@@ -91,7 +91,7 @@ function PrintHeader($header){
 
 ############################# Explorer #############################
 
-function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $debugSwitch){
+function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $_ExcludeLongChecks, $debugSwitch){
 	$windowsCounter = 0
 	$explorerPathsToOpen = @()
 	
@@ -125,7 +125,7 @@ function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $debugSwitch){
 			
 			if(Test-Path $p){
 				Write-Debug $("Checking " + $p)
-				$res = $(ls $p).Name | Select-String -Pattern $_words
+				$res = $(ls $p -Force -Recurse:(!$_ExcludeLongChecks) -ErrorAction SilentlyContinue).FullName | Select-String -Pattern $_words
 				
 				if($res){
 					$explorerPathsToOpen += [pscustomobject]@{Key = $p; Value = @(); KeyColor="Blue"; ValueColor="Green"}
@@ -166,7 +166,7 @@ function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $debugSwitch){
 
 ############################# Regedit #############################
 
-function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedit_loops_paths, $_words, $maxWindows, $debugSwitch){
+function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedit_loops_paths, $_words, $maxWindows, $_ExcludeLongChecks, $debugSwitch){
 	$windowsCounter = 0
 	$firstPrint = $true
 	
@@ -277,7 +277,7 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 		Write-Verbose "Regedit values paths missing `n`n"
 	}
 	
-	if(!$ExcludeLongChecks -and $regedit_loops_paths){
+	if(!$_ExcludeLongChecks -and $regedit_loops_paths){
 		Write-Verbose "Checking Regedit loops paths `n`n"
 		$regeditPathsToPrint = @()
 	
@@ -387,11 +387,12 @@ if(Test-Path $FilePath){
 	$regex = $Check -Join "|"
 
 	if("AllExplorer" -match $regex){
-		OpenExplorerPaths $paths.explorer $Words $MaxExplorerWindows $PSBoundParameters["Debug"]
+		$exp_paths = if ($ExcludeLongChecks) { $paths.explorer_specific } else { $paths.explorer_recursive }
+		OpenExplorerPaths $exp_paths $Words $MaxExplorerWindows $ExcludeLongChecks $PSBoundParameters["Debug"]
 	}
 
 	if("AllRegedit" -match $regex){
-		OpenRegeditPaths $paths.regedit_folders $paths.regedit_values $paths.regedit_loops $Words $MaxRegeditWindows $PSBoundParameters["Debug"]
+		OpenRegeditPaths $paths.regedit_folders $paths.regedit_values $paths.regedit_loops $Words $MaxRegeditWindows $ExcludeLongChecks $PSBoundParameters["Debug"]
 	}
 
 	if("AllServices" -match $regex){
