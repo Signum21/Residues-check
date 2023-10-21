@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-This script searches for residual firewall rules, services, files, folders and registry keys left over from uninstalled programs.
+This script searches for residual files, folders, registry keys, services, scheduled tasks and firewall rules left over from uninstalled programs.
+The search is based on keywords provided by the user.
 This script does not delete anything.
 
 .DESCRIPTION
@@ -16,7 +17,7 @@ Keywords used to filter results, case insensitive.
 
 .PARAMETER Check
 Option to specify which search to perform.
-Possible values: All, Explorer, Regedit, Services, FirewallRules
+Possible values: All, Explorer, Regedit, Services, ScheduledTasks, FirewallRules
 Default value: All
 
 .PARAMETER MaxRegeditWindows
@@ -55,7 +56,7 @@ Param(
 	[String] $FilePath = ".\paths.json",
 	
 	[Parameter(Position = 2, Mandatory = $false)]
-	[ValidateSet("All", "Regedit", "Explorer", "Services", "FirewallRules")]
+	[ValidateSet("All", "Regedit", "Explorer", "Services", "ScheduledTasks", "FirewallRules")]
 	[String[]] $Check = @("All"),
 	
 	[Parameter(Position = 3, Mandatory = $false)]
@@ -327,14 +328,14 @@ function GetServices($_words){
 	
 	$filter = foreach($w in $_words) {"*$w*"}
 	$services = @()
-	$services += (Get-Service -Name $filter) 2> $null
-	$services += (Get-Service -DisplayName $filter) 2> $null
+	$services += (Get-Service -Name $filter) 2>$null
+	$services += (Get-Service -DisplayName $filter) 2>$null
 	$services = $services | select -Unique -Property Name, DisplayName, Status
 	
 	if($services){
 		PrintHeader "Services"
 		
-		Write-Host $($services | Format-List | Out-String).Trim() -NoNewline 2> $null
+		Write-Host $($services | Format-List | Out-String).Trim() -NoNewline 2>$null
 		
 		Write-Host "`n"
 		Write-Host "You can stop and delete any service using the following commands with admin privileges:"
@@ -347,6 +348,34 @@ function GetServices($_words){
 }
 
 
+############################# Scheduled Tasks #############################
+
+function GetScheduledTasks($_words){
+	Write-Verbose "Checking Scheduled Tasks `n`n"
+	
+	$filter = $_words -Join "|"
+	
+	$tasks = Get-ScheduledTask | where { 
+		$_.URI -match $filter -or `
+		$_.Author -match $filter -or `
+		$_.Description -match $filter -or `
+		$_.Actions.Execute -match $filter
+	} | select TaskName,TaskPath,Author,Description,@{N='Actions';E={foreach($action in $_.Actions) { $action.Execute + " " + $action.Arguments }}}
+
+	if($tasks){
+		PrintHeader "Scheduled Tasks"
+		
+		Write-Host $($tasks | Format-List | Out-String).Trim() -NoNewline
+		
+		Write-Host "`n"
+		Write-Host "You can delete any scheduled task using the following command:"
+		Write-Host "Unregister-ScheduledTask -TaskName " -ForegroundColor Blue -NoNewline
+		Write-Host "<TaskName>" -ForegroundColor DarkYellow
+		Write-Host "`n" -NoNewline
+	}	
+}
+
+
 ############################# Firewall Rules #############################
 
 function GetFirewallRules($_words){
@@ -356,8 +385,20 @@ function GetFirewallRules($_words){
 	if($isAdmin){
 		Write-Verbose "Checking Firewall Rules `n`n"
 		
-		$filter = foreach($w in $_words) {"*$w*"}
-		$rules = Get-NetFirewallRule -DisplayName $filter | select DisplayName,Description,Enabled,Direction,Action
+		$filter = $_words -Join "|"
+		
+		$rules = Get-NetFirewallRule | where { 
+			$_.Name -match $filter -or `
+			$_.ID -match $filter -or `
+			$_.DisplayName -match $filter -or `
+			$_.Group -match $filter -or `
+			$_.Description -match $filter -or `
+			$_.ElementName -match $filter -or `
+			$_.InstanceID -match $filter -or `
+			$_.CreationClassName -match $filter -or `
+			$_.DisplayGroup -match $filter -or `
+			$_.RuleGroup -match $filter
+		} | select Name,ID,DisplayName,Group,Description,ElementName,InstanceID,CreationClassName,DisplayGroup,RuleGroup,Enabled,Direction,Action
 		
 		if($rules){
 			PrintHeader "Firewall Rules"
@@ -365,7 +406,7 @@ function GetFirewallRules($_words){
 			Write-Host $($rules | Format-List | Out-String).Trim() -NoNewline
 			
 			Write-Host "`n"
-			Write-Host "You can delete any rule using the following command with admin privileges:"
+			Write-Host "You can delete any firewall rule using the following command with admin privileges:"
 			Write-Host "Remove-NetFirewallRule -DisplayName " -ForegroundColor Blue -NoNewline
 			Write-Host "<RuleDisplayName>" -ForegroundColor DarkYellow
 			Write-Host "`n" -NoNewline
@@ -379,30 +420,42 @@ function GetFirewallRules($_words){
 
 ############################# Main #############################
 
-if(Test-Path $FilePath){
-	if ($PSBoundParameters["Debug"]) {
-		$DebugPreference = "Continue"
-	}
-	$paths = Get-Content $FilePath -Raw | ConvertFrom-Json
-	$regex = $Check -Join "|"
+if ($PSBoundParameters["Debug"]) {
+	$DebugPreference = "Continue"
+}
+$fileFullPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($FilePath)
+$paths = Get-Content $FilePath -Raw 2>$null | ConvertFrom-Json
+$regex = $Check -Join "|"
 
-	if("AllExplorer" -match $regex){
+if("AllExplorer" -match $regex){
+	if($paths){
 		$exp_paths = if ($ExcludeLongChecks) { $paths.explorer_specific } else { $paths.explorer_recursive }
 		OpenExplorerPaths $exp_paths $Words $MaxExplorerWindows $ExcludeLongChecks $PSBoundParameters["Debug"]
 	}
-
-	if("AllRegedit" -match $regex){
-		OpenRegeditPaths $paths.regedit_folders $paths.regedit_values $paths.regedit_loops $Words $MaxRegeditWindows $ExcludeLongChecks $PSBoundParameters["Debug"]
-	}
-
-	if("AllServices" -match $regex){
-		GetServices $Words
-	}
-
-	if("AllFirewallRules" -match $regex){
-		GetFirewallRules $Words
+	else{
+		Write-Host $("Can't run Explorer check: {0} not found" -f $fileFullPath) -BackgroundColor DarkRed
+		Write-Host "`n" -NoNewline
 	}
 }
-else{
-	Write-Host $("{0} not found" -f $FilePath) -BackgroundColor DarkRed
+
+if("AllRegedit" -match $regex){
+	if($paths){
+		OpenRegeditPaths $paths.regedit_folders $paths.regedit_values $paths.regedit_loops $Words $MaxRegeditWindows $ExcludeLongChecks $PSBoundParameters["Debug"]
+	}
+	else{
+		Write-Host $("Can't run Regedit check: {0} not found" -f $fileFullPath) -BackgroundColor DarkRed
+		Write-Host "`n" -NoNewline
+	}
+}
+
+if("AllServices" -match $regex){
+	GetServices $Words
+}
+
+if("AllScheduledTasks" -match $regex){
+	GetScheduledTasks $Words
+}
+
+if("AllFirewallRules" -match $regex){
+	GetFirewallRules $Words
 }	
