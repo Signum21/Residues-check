@@ -5,8 +5,8 @@ The search is based on keywords provided by the user.
 This script does not delete anything.
 
 .DESCRIPTION
-Green values under a Blue path can be manually deleted but won't be opened, only the parent path will be opened.
-Green paths will be opened and can be manually deleted. The optional White values under specify which string triggered the match.
+Green values under a Blue path can be manually deleted.
+Green paths can be manually deleted. The optional White values under specify which string triggered the match.
 
 .PARAMETER FilePath
 Path to the JSON file containing the paths to analyze.
@@ -20,28 +20,20 @@ Option to specify which search to perform.
 Possible values: All, Explorer, Regedit, Services, ScheduledTasks, FirewallRules
 Default value: All
 
-.PARAMETER MaxRegeditWindows
-Max number of Regedit windows to open.
-Default value: 1
-
-.PARAMETER MaxExplorerWindows
-Max number of Explorer windows to open.
-Default value: 1
-
 .PARAMETER ExcludeLongChecks
 Option to exclude long checks.
 Default value: False
 
 .EXAMPLE
-Performs all searches without opening any window.
-.\ResiduesCheck.ps1 -Words anydesk,teamviewer -MaxExplorerWindows 0 -MaxRegeditWindows 0
+Performs all searches.
+.\ResiduesCheck.ps1 -Words anydesk,teamviewer
 
 .EXAMPLE
-Perform Services and Regedit searches, opening only 1 window of Regedit.
-.\ResiduesCheck.ps1 -Words openvpn -Check Services,Regedit -MaxRegeditWindows 1
+Perform Services and Regedit searches.
+.\ResiduesCheck.ps1 -Words openvpn -Check Services,Regedit
 
 .EXAMPLE
-Perform all searches excluding the long ones, opening only 1 window of Regedit and only 1 windows of explorer, with maximum verbosity.
+Perform all searches excluding the long ones, with maximum verbosity.
 .\ResiduesCheck.ps1 -Words teamviewer -Check All -ExcludeLongChecks -v -d
 #>
 
@@ -58,12 +50,6 @@ Param(
 	[Parameter(Position = 2, Mandatory = $false)]
 	[ValidateSet("All", "Regedit", "Explorer", "Services", "ScheduledTasks", "FirewallRules")]
 	[String[]] $Check = @("All"),
-	
-	[Parameter(Position = 3, Mandatory = $false)]
-	[Int] $MaxRegeditWindows = 1,
-	
-	[Parameter(Position = 4, Mandatory = $false)]
-	[Int] $MaxExplorerWindows = 1,
 	
 	[Parameter(Position = 5, Mandatory = $false)]
 	[Switch] $ExcludeLongChecks = $false
@@ -92,21 +78,13 @@ function PrintHeader($header){
 
 ############################# Explorer #############################
 
-function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $_ExcludeLongChecks, $debugSwitch){
-	$windowsCounter = 0
-	$explorerPathsToOpen = @()
+function GetExplorerPaths($explorer_paths, $_words, $_ExcludeLongChecks, $debugSwitch){
+	$explorerPathsToPrint = @()
 	
 	function Local:GetFullPath($obj){
 		return [environment]::ExpandEnvironmentVariables("%" + $obj[0] + "%" + $obj[1])
 	}
-	
-	function Local:OpenExplorer($cmdlet, $path_exp, $_maxWindows, [ref]$_windowsCounter){		
-		if($_maxWindows -gt $_windowsCounter.Value){
-			$_windowsCounter.Value++
-			&($cmdlet) $path_exp
-		}
-	}
-	
+		
 	function Local:PrintPath($_path){
 		Write-Host $_path.Key -ForegroundColor $_path.KeyColor
 			
@@ -129,10 +107,10 @@ function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $_ExcludeLongC
 				$res = $(ls $p -Force -Recurse:(!$_ExcludeLongChecks) -ErrorAction SilentlyContinue).FullName | Select-String -Pattern $_words
 				
 				if($res){
-					$explorerPathsToOpen += [pscustomobject]@{Key = $p; Value = @(); KeyColor="Blue"; ValueColor="Green"}
+					$explorerPathsToPrint += [pscustomobject]@{Key = $p; Value = @(); KeyColor="Blue"; ValueColor="Green"}
 					
 					foreach($r in $res){
-						$explorerPathsToOpen[-1].Value += $r
+						$explorerPathsToPrint[-1].Value += $r
 					}	
 				}
 			}
@@ -149,17 +127,11 @@ function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $_ExcludeLongC
 		Write-Verbose "Explorer paths missing `n`n"
 	}
 	
-	if($explorerPathsToOpen){
+	if($explorerPathsToPrint){
 		PrintHeader "Explorer paths"
 		
-		PrintPath $explorerPathsToOpen[0]
-		OpenExplorer "explorer" $explorerPathsToOpen[0].Key $maxWindows ([ref]$windowsCounter)
-		Start-Sleep -s 1
-		$exp_paths = $explorerPathsToOpen[1..$explorerPathsToOpen.Length]
-		
-		foreach($epto in $exp_paths){
-			PrintPath $epto
-			OpenExplorer "ii" $epto.Key $maxWindows ([ref]$windowsCounter)
+		foreach($eptp in $explorerPathsToPrint){
+			PrintPath $eptp
 		}
 	}
 }
@@ -167,21 +139,9 @@ function OpenExplorerPaths($explorer_paths, $_words, $maxWindows, $_ExcludeLongC
 
 ############################# Regedit #############################
 
-function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedit_loops_paths, $_words, $maxWindows, $_ExcludeLongChecks, $debugSwitch){
-	$windowsCounter = 0
+function GetRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedit_loops_paths, $_words, $_ExcludeLongChecks, $debugSwitch){
 	$firstPrint = $true
-	
-	function Local:OpenRegedit($_path, $_maxWindows, [ref]$_windowsCounter){
-		if($_maxWindows -gt $_windowsCounter.Value){
-			$_windowsCounter.Value++
-			$regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Applets\Regedit"
-			$name = "LastKey"
-			New-ItemProperty -Path $regPath -Name $name -Value $_path -PropertyType String -Force | Out-Null
-			Start-Process RegEdit /m
-			Start-Sleep -s 1
-		}
-	}
-	
+		
 	function Local:Print($_regeditPathsToPrint, [ref]$_firstPrint){
 		if($_regeditPathsToPrint){
 			if($_firstPrint.Value){
@@ -189,7 +149,7 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 				$_firstPrint.Value = $false
 			}
 				
-			foreach($rptp in $regeditPathsToPrint){
+			foreach($rptp in $_regeditPathsToPrint){
 				Write-Host $rptp.Key -ForegroundColor $rptp.KeyColor
 				
 				foreach($value in $rptp.Value){
@@ -219,7 +179,6 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 					
 					foreach($r in $res){
 						$regeditPathsToPrint[-1].Key += $([string]$r) + "`n"
-						OpenRegedit $r $maxWindows ([ref]$windowsCounter)
 					}
 					$regeditPathsToPrint[-1].Key = $regeditPathsToPrint[-1].Key.Trim()
 				}
@@ -254,7 +213,6 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 				
 				if($res){
 					$regeditPathsToPrint += [pscustomobject]@{Key = $value_path; Value = @(); KeyColor="Blue"; ValueColor="Green"}
-					OpenRegedit $value_path $maxWindows ([ref]$windowsCounter)
 					
 					foreach($r in $res){					
 						foreach($match in $r){
@@ -297,7 +255,6 @@ function OpenRegeditPaths($regedit_folders_paths, $regedit_values_paths, $regedi
 					
 					if($res2){					
 						$regeditPathsToPrint += [pscustomobject]@{Key = $r; Value = @(); KeyColor="Green"; ValueColor="White"}
-						OpenRegedit $r $maxWindows ([ref]$windowsCounter)
 						
 						foreach($r2 in $res2){
 							$regeditPathsToPrint[-1].Value += $([string]$r2).Trim() -Split "    " | Select-String -Pattern $_words
@@ -430,7 +387,7 @@ $regex = $Check -Join "|"
 if("AllExplorer" -match $regex){
 	if($paths){
 		$exp_paths = if ($ExcludeLongChecks) { $paths.explorer_specific } else { $paths.explorer_recursive }
-		OpenExplorerPaths $exp_paths $Words $MaxExplorerWindows $ExcludeLongChecks $PSBoundParameters["Debug"]
+		GetExplorerPaths $exp_paths $Words $ExcludeLongChecks $PSBoundParameters["Debug"]
 	}
 	else{
 		Write-Host $("Can't run Explorer check: {0} not found" -f $fileFullPath) -BackgroundColor DarkRed
@@ -440,7 +397,7 @@ if("AllExplorer" -match $regex){
 
 if("AllRegedit" -match $regex){
 	if($paths){
-		OpenRegeditPaths $paths.regedit_folders $paths.regedit_values $paths.regedit_loops $Words $MaxRegeditWindows $ExcludeLongChecks $PSBoundParameters["Debug"]
+		GetRegeditPaths $paths.regedit_folders $paths.regedit_values $paths.regedit_loops $Words $ExcludeLongChecks $PSBoundParameters["Debug"]
 	}
 	else{
 		Write-Host $("Can't run Regedit check: {0} not found" -f $fileFullPath) -BackgroundColor DarkRed
